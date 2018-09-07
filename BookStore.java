@@ -1,5 +1,6 @@
 package BookStoreApp;
 
+
 import javafx.application.Application;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -34,6 +35,17 @@ public class BookStore extends Application {
     Button exit;
     Stage window;
 
+    Label numItemsLabel;    TextField numItemsField;
+    Label bookID;           TextField idField;
+    Label bookQuantity;     TextField quantField;
+    Label infoLabel;        TextField infoField;
+    Label subtotalLabel;    TextField subtotalField;
+
+    int numItemsTotal;
+    int currentItem;
+    int numOfCurrentItem;
+    int orderSubtotal;
+    ArrayList<BookObject> bookCatalog;
 
     // *---------------------------------------* //
     //     Graphical User Interface Objects      //
@@ -42,6 +54,7 @@ public class BookStore extends Application {
     @Override
     public void start(Stage primaryStage) {
         //Parent root = FXMLLoader.load(getClass().getResource("BookStoreApp.fxml"));
+        currentItem = 1;
         window = primaryStage;
         window.setTitle("My Book Store");
 
@@ -55,28 +68,28 @@ public class BookStore extends Application {
         //               UI LABELS                 //
 
         // Number of items label
-        Label numItemsLabel = new Label("Enter number of items in this order:");
+        numItemsLabel = new Label("Enter number of items in this order:");
         numItemsLabel.setTextFill(Color.web("#FFFFFF"));
         numItemsLabel.setMinWidth(30);
         GridPane.setConstraints(numItemsLabel, 0, 0);
 
         // Book ID label
-        Label bookID = new Label("Enter Book ID for Item #1:");
+        bookID = new Label("Enter Book ID for Item #" + currentItem + ":");
         bookID.setTextFill(Color.web("#FFFFFF"));
         GridPane.setConstraints(bookID, 0, 1);
 
         // Book quantity label
-        Label bookQuantity = new Label("Enter quantity for Item #1:");
+        bookQuantity = new Label("Enter quantity for Item #" + currentItem + ":");
         bookQuantity.setTextFill(Color.web("#FFFFFF"));
         GridPane.setConstraints(bookQuantity, 0, 2);
 
         // Book information in catalog Label
-        Label infoLabel = new Label("Item #1 info:");
+        infoLabel = new Label("Item #" + currentItem + " info:");
         infoLabel.setTextFill(Color.web("#FFFFFF"));
         GridPane.setConstraints(infoLabel, 0, 4);
 
         // Order subtotal label
-        Label subtotalLabel = new Label("Order subtotal for 0 items(s):");
+        subtotalLabel = new Label("Order subtotal for " + (currentItem - 1) + " items(s):");
         subtotalLabel.setTextFill(Color.web("#FFFFFF"));
         GridPane.setConstraints(subtotalLabel, 0, 6);
 
@@ -85,27 +98,31 @@ public class BookStore extends Application {
         //             UI INPUT FIELDS             //
 
         // Number of items input field
-        TextField numItemsField = new TextField();
+        numItemsField = new TextField();
         GridPane.setConstraints(numItemsField, 1, 0);
 
+
         // Book ID input field
-        TextField idField = new TextField();
+        idField = new TextField();
         GridPane.setConstraints(idField, 1, 1);
 
         // Book quantity input field
-        TextField quantField = new TextField();
+        quantField = new TextField();
         GridPane.setConstraints(quantField, 1, 2);
 
         // Item Info Field
-        TextField infoField = new TextField();
+        infoField = new TextField();
         GridPane.setConstraints(infoField, 0, 5);
-        infoField.setMinWidth(300);
+        infoField.setMinWidth(350);
         infoField.setDisable(true);
 
         // Subtotal Field
-        TextField subtotalField = new TextField();
+        subtotalField = new TextField();
         GridPane.setConstraints(subtotalField, 0, 7);
         subtotalField.setDisable(true);
+
+        bookCatalog = (ArrayList<BookObject>) readFile();
+        //printInput(bookCatalog);
 
 
         // --------------------------------------- //
@@ -113,11 +130,34 @@ public class BookStore extends Application {
 
         processItem = new Button("Process Item");
         GridPane.setConstraints(processItem, 1, 3);
-        processItem.setOnAction(e -> alertPopUp("No book ID match", "Enter the correct book ID!", numItemsField));
+        processItem.setOnAction(e -> {
+
+            numItemsField.setDisable(true);
+            numItemsTotal = Integer.parseInt(numItemsField.getText());
+
+            final boolean sucess = processItem(Integer.parseInt(idField.getText()), bookCatalog, infoField, numItemsField, numItemsTotal);
+
+            if (sucess) {
+                subtotalLabel.setText("Order subtotal for " + (currentItem) + " items(s):");
+                infoLabel.setText("Item#" + (currentItem) + " info:");
+                alertPopUp("Message Success", "Item #" + currentItem + " accepted");
+                currentItem++;
+                bookID.setText("Enter Book ID for Item #" + currentItem + ":");
+                bookQuantity.setText("Enter quantity for Item #" + currentItem + ":");
+                processItem.setText("Process Item #" + currentItem);
+
+            } else {
+                alertPopUp("Message Failure", "Book ID " + idField.getText() + " not in file");
+            }
+
+            System.out.println(numItemsTotal);
+
+        });
+
 
         confirmItem = new Button("Confirm Item");
         GridPane.setConstraints(confirmItem, 1, 5);
-        confirmItem.setDisable(true);
+        confirmItem.setOnAction(e -> alertPopUp("No book ID match", "Enter the correct book ID!"));
 
         viewOrder = new Button("View Order");
         GridPane.setConstraints(viewOrder, 1, 7);
@@ -132,6 +172,7 @@ public class BookStore extends Application {
         finishOrder.setDisable(true);
 
         exit = new Button("Exit");
+        exit.setOnAction(e -> window.close());
         GridPane.setConstraints(exit, 1, 9);
 
         // Adding all UI elements to the grid
@@ -139,7 +180,7 @@ public class BookStore extends Application {
                 infoLabel, infoField,subtotalLabel, subtotalField, processItem, confirmItem, viewOrder, finishOrder, newOrder, exit);
 
         // Creating scene and configuring window content.
-        Scene scene = new Scene(grid, 440, 500);
+        Scene scene = new Scene(grid, 500, 500);
         window.setScene(scene);
         window.show();
 
@@ -160,6 +201,81 @@ public class BookStore extends Application {
         // Initiate Graphical User Interface
         launch(args);
 
+    }
+
+
+    // *-------------------------------------------------------* //
+    //  Process Item - Function will read the number of items    //
+    //  to expect. Will search given item ID, if found it will   //
+    //  then display the information stored about the item       //
+    // *-------------------------------------------------------* //
+    public static boolean processItem(int itemID, ArrayList<BookObject> bookCatalog, TextField infoField, TextField numItemsField, int numItemsTotal) {
+
+        String itemInfo = "!";
+        boolean success = false;
+
+        // Iterate through catalog and search for the itemID
+        // If found return its corresponding info, otherwise return '!'
+        for (int i = 0; i < bookCatalog.size(); i++) {
+
+            // Matched ID to one in catalog
+            if (itemID == bookCatalog.get(i).getBookID()) {
+                itemInfo = bookCatalog.get(i).getBookInfo();
+                //infoField.setDisable(false);
+                numItemsField.setDisable(true);
+                infoField.setText(itemInfo + " " + calcDiscount(bookCatalog.get(i).getBookCost(), numItemsTotal) );
+                //infoField.setDisable(true);
+                success = true;
+            }
+        }
+
+        return success;
+    }
+
+
+    // *-------------------------------------------------------* //
+    //  Confirm Item - Function wil add item to transaction log  //
+    //  it will activate process functionality upon success      //
+    // *-------------------------------------------------------* //
+    public static boolean confirmItem() {
+        boolean success = false;
+
+
+
+        return  success;
+    }
+
+    public static String calcDiscount(double cost, int numItemsTotal) {
+        double percent;
+        String text;
+
+        if (numItemsTotal < 5 && numItemsTotal > 0) {
+            percent = 0;
+        } else if (numItemsTotal > 4 && numItemsTotal < 10) {
+            percent = 10;
+        } else if (numItemsTotal > 9 && numItemsTotal < 15) {
+            percent = 15;
+        } else {
+            percent = 20;
+        }
+
+        if (percent > 0) {
+            text = "$" + cost + " " + percent + "% $" + round((cost * percent) / 10, 2);
+        } else {
+            text = "$" + cost + " " + percent + "% $" + cost;
+        }
+
+        return text;
+    }
+
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        long factor = (long) Math.pow(10, places);
+        value = value * factor;
+        long tmp = Math.round(value);
+        return (double) tmp / factor;
     }
 
     // *-------------------------------------------------------* //
@@ -207,7 +323,7 @@ public class BookStore extends Application {
     //      //
     //      //
     // *-------------------------------------------------------* //
-    public static void alertPopUp(String title, String message, TextField field) {
+    public static void alertPopUp(String title, String message) {
 
         // Stage configuration
         Stage window = new Stage();
@@ -234,8 +350,8 @@ public class BookStore extends Application {
 
         // Layout and style of alert window
         GridPane grid = new GridPane();
-        grid.setPadding(new Insets(0,15,15,15));
-        grid.setVgap(15);
+        grid.setPadding(new Insets(75,15,40,15));
+        grid.setVgap(90);
         grid.setHgap(20);
         grid.setStyle("-fx-background-color: #373737;");
         grid.getChildren().addAll(titleLabel, confirm);
@@ -245,19 +361,10 @@ public class BookStore extends Application {
 
         // Content of window
         //Scene scene = new Scene(layout);
-        Scene scene = new Scene(grid, 350,200);
+        Scene scene = new Scene(grid, 420,220);
         window.setScene(scene);
         window.showAndWait();
-        System.out.println(field.getText());
     }
-
-
-
-
-
-
-
-
 
 
     // --------------------------------------- //
