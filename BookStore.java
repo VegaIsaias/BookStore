@@ -11,12 +11,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import javax.rmi.ssl.SslRMIClientSocketFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -27,25 +26,29 @@ import java.util.Scanner;
 //                                         //
 public class BookStore extends Application {
 
-    Button processItem;
-    Button confirmItem;
-    Button viewOrder;
-    Button finishOrder;
-    Button newOrder;
-    Button exit;
-    Stage window;
+    private static Button processItem;
+    private static Button confirmItem;
+    private static Button viewOrder;
+    private static Button finishOrder;
+    private static Button newOrder;
+    private static Button exit;
+    private static Stage window;
 
-    Label numItemsLabel;    TextField numItemsField;
-    Label bookID;           TextField idField;
-    Label bookQuantity;     TextField quantField;
-    Label infoLabel;        TextField infoField;
-    Label subtotalLabel;    TextField subtotalField;
+    private static Label numItemsLabel;    private static TextField numItemsField;
+    private static Label bookID;           private static TextField idField;
+    private static Label bookQuantity;     private static TextField quantField;
+    private static Label infoLabel;        private static TextField infoField;
+    private static Label subtotalLabel;    private static TextField subtotalField;
 
-    int numItemsTotal;
-    int currentItem;
-    int numOfCurrentItem;
-    int orderSubtotal;
-    ArrayList<BookObject> bookCatalog;
+    private static int totalItems;
+    private static int currentItem;
+    private static int numOfCurrentItem;
+    private static double orderSubtotal;
+    private static int percent;
+    private static int index;
+    private static ArrayList<BookObject> bookCatalog;
+    private static ArrayList<Integer> invoiceItemsLocs;
+
 
     // *---------------------------------------* //
     //     Graphical User Interface Objects      //
@@ -55,7 +58,12 @@ public class BookStore extends Application {
     public void start(Stage primaryStage) {
         //Parent root = FXMLLoader.load(getClass().getResource("BookStoreApp.fxml"));
         currentItem = 1;
+        totalItems = 0;
         window = primaryStage;
+        bookCatalog = (ArrayList<BookObject>) readFile();
+        invoiceItemsLocs = new ArrayList<Integer>();
+
+
         window.setTitle("My Book Store");
 
         GridPane grid = new GridPane();
@@ -70,7 +78,7 @@ public class BookStore extends Application {
         // Number of items label
         numItemsLabel = new Label("Enter number of items in this order:");
         numItemsLabel.setTextFill(Color.web("#FFFFFF"));
-        numItemsLabel.setMinWidth(30);
+        numItemsLabel.setMinWidth(40);
         GridPane.setConstraints(numItemsLabel, 0, 0);
 
         // Book ID label
@@ -101,7 +109,6 @@ public class BookStore extends Application {
         numItemsField = new TextField();
         GridPane.setConstraints(numItemsField, 1, 0);
 
-
         // Book ID input field
         idField = new TextField();
         GridPane.setConstraints(idField, 1, 1);
@@ -121,43 +128,29 @@ public class BookStore extends Application {
         GridPane.setConstraints(subtotalField, 0, 7);
         subtotalField.setDisable(true);
 
-        bookCatalog = (ArrayList<BookObject>) readFile();
-        //printInput(bookCatalog);
+
 
 
         // --------------------------------------- //
         //            UI ACTION EVENTS             //
 
-        processItem = new Button("Process Item");
+        processItem = new Button("Process Item #" + currentItem);
         GridPane.setConstraints(processItem, 1, 3);
+        processItem.setText("Process Item #" + currentItem);
         processItem.setOnAction(e -> {
 
-            numItemsField.setDisable(true);
-            numItemsTotal = Integer.parseInt(numItemsField.getText());
-
-            final boolean sucess = processItem(Integer.parseInt(idField.getText()), bookCatalog, infoField, numItemsField, numItemsTotal);
-
-            if (sucess) {
-                subtotalLabel.setText("Order subtotal for " + (currentItem) + " items(s):");
-                infoLabel.setText("Item#" + (currentItem) + " info:");
-                alertPopUp("Message Success", "Item #" + currentItem + " accepted");
-                currentItem++;
-                bookID.setText("Enter Book ID for Item #" + currentItem + ":");
-                bookQuantity.setText("Enter quantity for Item #" + currentItem + ":");
-                processItem.setText("Process Item #" + currentItem);
-
-            } else {
-                alertPopUp("Message Failure", "Book ID " + idField.getText() + " not in file");
-            }
-
-            System.out.println(numItemsTotal);
+              processItems();
 
         });
 
-
-        confirmItem = new Button("Confirm Item");
+        confirmItem = new Button("Confirm Item #" + currentItem);
         GridPane.setConstraints(confirmItem, 1, 5);
-        confirmItem.setOnAction(e -> alertPopUp("No book ID match", "Enter the correct book ID!"));
+        confirmItem.setOnAction(e -> {
+
+            confirmItem();
+
+        });
+        confirmItem.setDisable(true);
 
         viewOrder = new Button("View Order");
         GridPane.setConstraints(viewOrder, 1, 7);
@@ -180,11 +173,13 @@ public class BookStore extends Application {
                 infoLabel, infoField,subtotalLabel, subtotalField, processItem, confirmItem, viewOrder, finishOrder, newOrder, exit);
 
         // Creating scene and configuring window content.
-        Scene scene = new Scene(grid, 500, 500);
+        Scene scene = new Scene(grid, 515, 500);
         window.setScene(scene);
         window.show();
 
-
+        //System.out.println("items: " + totalItems + " size: " + itemQuantity.size());
+        //changeValue();
+        //System.out.println("items: " + totalItems + " size: " + itemQuantity.size() + " arr(0): " + itemQuantity.get(0));
     }
 
     // *---------------------------------------* //
@@ -198,6 +193,7 @@ public class BookStore extends Application {
         bookCatalog = (ArrayList<BookObject>) readFile();
         printInput(bookCatalog);                                //
 
+
         // Initiate Graphical User Interface
         launch(args);
 
@@ -205,50 +201,209 @@ public class BookStore extends Application {
 
 
     // *-------------------------------------------------------* //
-    //  Process Item - Function will read the number of items    //
-    //  to expect. Will search given item ID, if found it will   //
-    //  then display the information stored about the item       //
+
     // *-------------------------------------------------------* //
-    public static boolean processItem(int itemID, ArrayList<BookObject> bookCatalog, TextField infoField, TextField numItemsField, int numItemsTotal) {
+    public static void viewOrder() {
 
-        String itemInfo = "!";
-        boolean success = false;
+    }
 
-        // Iterate through catalog and search for the itemID
-        // If found return its corresponding info, otherwise return '!'
+    // *-------------------------------------------------------* //
+
+    // *-------------------------------------------------------* //
+    public static void processItems() {
+
+        // Check that all text fields have data to read, if a field is empty
+        // output a messege to the user
+        if (idField.getText().isEmpty() || quantField.getText().isEmpty() || numItemsField.getText().isEmpty()) {
+            alertPopUp("Missing Information", "There are empty fields, please fill all fields to proceed.");
+            return;
+        }
+
+        // Seach for location of itemID in catalog
+        index = searchItemID(Integer.parseInt(idField.getText()),bookCatalog);
+
+        // If item was found, process it and update UI
+        if (index != -1) {
+
+            // If this is the first item to process successfully,
+            // disable totalItems text field
+            if (currentItem == 1) {
+                numItemsField.setDisable(true);
+
+                // Store number of items in order
+                totalItems = Integer.parseInt(numItemsField.getText());
+            }
+
+            // Check if item count does not exceed totalItems
+            if (currentItem > totalItems ) {
+                // add alert
+            }
+
+            // Storing book quantity info
+            bookCatalog.get(index).setBookQuantity(Integer.parseInt(quantField.getText()));
+            bookCatalog.get(index).setBulkPercent(findPercent(bookCatalog.get(index).getBookQuantity()));
+
+            // Display item information and calculated cost and discount percentage
+            String discount = bookCatalog.get(index).getBookID() + " ''" + bookCatalog.get(index).getBookInfo()
+                    + "' $" + bookCatalog.get(index).getBookCost() + " " + bookCatalog.get(index).getBulkPercent() + "% $" + calcBulkDiscount();
+            infoField.setText(discount);
+
+
+
+            // Enable/Disable buttons for confirmation process
+            confirmItem.setDisable(false);
+            processItem.setDisable(true);
+
+            // *****************
+            // Disable item info text fields
+            idField.setDisable(true);
+            quantField.setDisable(true);
+
+
+        } else {
+
+            // The item was not found in the catalog, outpuf msg to user
+            alertPopUp("Message Failure", "Book ID " + idField.getText() + " not in file");
+        }
+
+    }
+
+    // *-------------------------------------------------------* //
+    //  Search for item ID inside book catalog, return the       //
+    //  location if found, otherwise return -1                   //
+    // *-------------------------------------------------------* //
+    public static int searchItemID(int itemID, ArrayList<BookObject> bookCatalog) {
+
+        index = -1;
+
         for (int i = 0; i < bookCatalog.size(); i++) {
 
             // Matched ID to one in catalog
             if (itemID == bookCatalog.get(i).getBookID()) {
-                itemInfo = bookCatalog.get(i).getBookInfo();
-                //infoField.setDisable(false);
-                numItemsField.setDisable(true);
-                infoField.setText(itemInfo + " " + calcDiscount(bookCatalog.get(i).getBookCost(), numItemsTotal) );
-                //infoField.setDisable(true);
-                success = true;
+                index = i;
             }
         }
 
-        return success;
+        return index;
     }
 
+
+    // *-------------------------------------------------------* //
+
+    // *-------------------------------------------------------* //
+    public static int findPercent(int numItems) {
+
+        // Determine discount percent
+        if (numItems < 5 && numItems > 0) {
+            percent = 0;
+        } else if (numItems > 4 && numItems < 10) {
+            percent = 10;
+        } else if (numItems > 9 && numItems < 15) {
+            percent = 15;
+        } else {
+            percent = 20;
+        }
+
+        return percent;
+    }
 
     // *-------------------------------------------------------* //
     //  Confirm Item - Function wil add item to transaction log  //
     //  it will activate process functionality upon success      //
     // *-------------------------------------------------------* //
-    public static boolean confirmItem() {
-        boolean success = false;
+    public static void confirmItem() {
+
+        // Store item information for invoice creation
+        //invoiceItemsLocs.add(index);
+        //itemQuantity.add(Integer.parseInt(numItemsField.getText()));
+        invoiceItemsLocs.add(index);
+
+        // Calculate subtotal of order
+        orderSubtotal = orderSubtotal + calcBulkDiscount();
+
+        currentItem++;
+
+        // Update labels for next item
+        subtotalLabel.setText("Order subtotal for " + (currentItem - 1) + " items(s):");
+        infoLabel.setText("Item #" + (currentItem - 1) + " info:");
+        bookID.setText("Enter Book ID for Item #" + currentItem + ":");
+        bookQuantity.setText("Enter quantity for Item #" + currentItem + ":");
+        processItem.setText("Process Item #" + (currentItem));
+        confirmItem.setText("Confirm Item #" + currentItem);
+
+        // Update subtotal field
+        subtotalField.setText("$" + orderSubtotal);
+
+        // Clear input fields for next item
+        idField.clear();
+        quantField.clear();
+
+        // Enable / Disable buttons
+        processItem.setDisable(false);
+        confirmItem.setDisable(true);
+        idField.setDisable(false);
+        quantField.setDisable(false);
+        viewOrder.setDisable(false);
+
+        // Let the user know the item was accepted
+        alertPopUp("Successful", "Item #" + (currentItem - 1) + " accepted.");
 
 
+        // Check if this was the last item to be entered
+        // If it is, don't allow anymore items to be entered and allow for user to finish process
+        if ((currentItem -1) == totalItems) {
+            idField.setDisable(true);
+            quantField.setDisable(true);
+            processItem.setDisable(true);
+            confirmItem.setDisable(true);
+            confirmItem.setText("Confirm Item");
+            processItem.setText("Process Item");
+            finishOrder.setDisable(false);
+            bookID.setText("");
+            bookQuantity.setText("");
 
-        return  success;
+        }
+
     }
 
+
+    // *-------------------------------------------------------* //
+
+    // *-------------------------------------------------------* //
+    public static double calcBulkDiscount() {
+
+        double cost;
+        int numItems;
+
+        // If this is
+        numItems = bookCatalog.get(index).getBookQuantity();
+
+        // Determine discount percent
+        if (numItems < 5 && numItems > 0) {
+            percent = 0;
+        } else if (numItems > 4 && numItems < 10) {
+            percent = 10;
+        } else if (numItems > 9 && numItems < 15) {
+            percent = 15;
+        } else {
+            percent = 20;
+        }
+
+        System.out.println("book cost: " + bookCatalog.get(index).getBookCost() + " nuItems: " + numItems + " percent:" + percent);
+        cost = round(((bookCatalog.get(index).getBookCost()) * numItems * percent) / 10, 2);
+
+        return cost;
+    }
+
+
+    // *-------------------------------------------------------* //
+
+    // *-------------------------------------------------------* //
     public static String calcDiscount(double cost, int numItemsTotal) {
-        double percent;
+
         String text;
 
+        // Determine discount percent
         if (numItemsTotal < 5 && numItemsTotal > 0) {
             percent = 0;
         } else if (numItemsTotal > 4 && numItemsTotal < 10) {
@@ -259,6 +414,7 @@ public class BookStore extends Application {
             percent = 20;
         }
 
+
         if (percent > 0) {
             text = "$" + cost + " " + percent + "% $" + round((cost * percent) / 10, 2);
         } else {
@@ -268,7 +424,9 @@ public class BookStore extends Application {
         return text;
     }
 
+    // *-------------------------------------------------------* //
 
+    // *-------------------------------------------------------* //
     public static double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
 
@@ -298,7 +456,7 @@ public class BookStore extends Application {
             while (scanner.hasNext()) {
                 String line = scanner.nextLine();
                 String[] data = line.split(",");
-                bookInstance = new BookObject(Integer.parseInt(data[0]),data[1],Double.parseDouble(data[2]));
+                bookInstance = new BookObject(Integer.parseInt(data[0]),data[1],Double.parseDouble(data[2]), 0, 0);
                 bookCatalog.add(bookInstance);
 
                 // Prevents scanner from reading last line with '0\'
