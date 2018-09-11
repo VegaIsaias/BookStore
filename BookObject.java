@@ -1,16 +1,14 @@
 package BookStoreApp;
 
 public class BookObject {
-    // Data from input file consists of 3 values
-    // Data will be stored in objects to better manage it
-    private int bookID;
-    private String bookInfo;
-    private double bookCost;
-    private int bookQuantity;       // How many of this particular item
-    private int bulkPercent;
+    
+    private int bookID;             // Number used to search for items in catalog 
+    private String bookInfo;        // Info about item in catalog file
+    private double bookCost;        // Cost
+    private int bookQuantity;       // Object is used for invoice func, stores item qt
+    private int bulkPercent;        // Conviniently, stores the total after discount deduction
 
-    // ----------------- //
-    // Class constructor //
+
     public BookObject(int bookID, String bookInfo, double bookCost, int bookQuantity, int bulkPercent) {
         super();
         this.bookID = bookID;

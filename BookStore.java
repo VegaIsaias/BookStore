@@ -1,3 +1,7 @@
+//
+// Create by Isaias Perez Vega
+//
+
 package BookStoreApp;
 
 
@@ -26,8 +30,6 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-//import BookStoreApp.Invoice;
-//import BookStoreApp.BookObject;
 
 // --------------------------------------- //
 //       TEST START METHOD WITH BUTTON     //
@@ -55,11 +57,9 @@ public class BookStore extends Application {
     private static int percent;
     private static int index;
     private static ArrayList<BookObject> bookCatalog;
-    //private static ArrayList<Integer> invoiceItemsLocs;
     private static ArrayList<BookObject> currInvoice;
-    //private static ArrayList<Invoice> invoiceLog;           //
-    //private Invoice currentInvoice;                         //
 
+    
     // *---------------------------------------* //
     //     Graphical User Interface Objects      //
     //   Default configuration for a new order   //
@@ -71,7 +71,6 @@ public class BookStore extends Application {
         totalItems = 0;
         window = primaryStage;
         bookCatalog = (ArrayList<BookObject>) readFile();
-        //invoiceItemsLocs = new ArrayList<Integer>();
         currInvoice = new ArrayList<BookObject>();
 
         //invoiceLog = new ArrayList<Invoice>();         // Array of invoices, should add invoice in finish order
@@ -95,6 +94,7 @@ public class BookStore extends Application {
         grid.setHgap(20);
         grid.setStyle("-fx-background-color: #373737;");
 
+        
         // --------------------------------------- //
         //               UI LABELS                 //
 
@@ -159,18 +159,14 @@ public class BookStore extends Application {
         GridPane.setConstraints(processItem, 1, 3);
         processItem.setText("Process Item #" + currentItem);
         processItem.setOnAction(e -> {
-
               processItems();
-
         });
 
 
         confirmItem = new Button("Confirm Item #" + currentItem);
         GridPane.setConstraints(confirmItem, 1, 5);
         confirmItem.setOnAction(e -> {
-
             confirmItem();
-
         });
         confirmItem.setDisable(true);
 
@@ -179,26 +175,20 @@ public class BookStore extends Application {
         GridPane.setConstraints(viewOrder, 1, 7);
         viewOrder.setDisable(true);
         viewOrder.setOnAction(e -> {
-
             viewOrder();
-
         });
 
 
         newOrder = new Button("New Order");
         GridPane.setConstraints(newOrder, 1, 8);
         newOrder.setOnAction(e -> {
-
             newOrder();
-
         });
 
         finishOrder = new Button("Finish Order");
         GridPane.setConstraints(finishOrder, 0, 9);
         finishOrder.setOnAction(e -> {
-
             finishOrder();
-
         });
         finishOrder.setDisable(true);
 
@@ -216,11 +206,9 @@ public class BookStore extends Application {
         window.setScene(scene);
         window.show();
 
-        //System.out.println("items: " + totalItems + " size: " + itemQuantity.size());
-        //changeValue();
-        //System.out.println("items: " + totalItems + " size: " + itemQuantity.size() + " arr(0): " + itemQuantity.get(0));
     }
 
+    
     // *---------------------------------------* //
     //              Start Program                //
     // *---------------------------------------* //
@@ -241,26 +229,29 @@ public class BookStore extends Application {
 
 
     // *-------------------------------------------------------* //
-
+    //  Will take all items in order and generate an invoice     //
+    //  incoice items will be saved as individual transactions   //
+    // saved to a transation log txt file                        //
     // *-------------------------------------------------------* //
     public static void finishOrder() {
 
 
         Writer writer = null;
 
+        
+        /// Getting time stamp
         SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy, HH:mm:ss");
         SimpleDateFormat timeStamp = new SimpleDateFormat("ddMMyyyyHHmm");
 
         Date date = new Date();
-
-        //System.out.println();
 
 
         try {
             writer = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream("transactions.txt"), "utf-8"));
 
-
+            
+            // Updating Invoice
             for (int x = 0; x < currInvoice.size(); x++) {
                 writer.write(genLogLabel(x + 1, currInvoice.get(x)) + ", "
                         +  formatter.format(date) + " PM EDT" + System.lineSeparator());
@@ -278,6 +269,11 @@ public class BookStore extends Application {
 
 
 
+
+    // *-------------------------------------------------------* //
+    //  Generates a string that is composed of the information   //
+    //  for an item displayed on a 'Vew Order' call              //
+    // *-------------------------------------------------------* //
     public static String genInvoiceLabel(int itemNumber, BookObject bookItem){
 
         String label = itemNumber + ". " + bookItem.getBookID() + bookItem.getBookInfo()
@@ -287,6 +283,11 @@ public class BookStore extends Application {
     }
 
 
+    
+    // *-------------------------------------------------------* //
+    //  Generates a string that is composed of the information   //
+    //  for an item displayed on a transaction line              //
+    // *-------------------------------------------------------* //
     public static String genLogLabel(int itemNumber, BookObject bookItem){
 
         String label = itemNumber + ", " + bookItem.getBookID() + ", " + bookItem.getBookInfo()
@@ -297,7 +298,8 @@ public class BookStore extends Application {
 
 
     // *-------------------------------------------------------* //
-
+    //  Launches a window displaying the current items that have //
+    //  been confirmed, window must be closed before proceeding  //
     // *-------------------------------------------------------* //
     public static void viewOrder() {
         String title = "";
@@ -335,26 +337,11 @@ public class BookStore extends Application {
 
         }
 
-
-        // Alert message
-//        Label titleLabel = new Label();
-//        titleLabel.setText(label);
-//        titleLabel.setTextFill(Color.web("#FFFFFF"));
-//        GridPane.setConstraints(titleLabel, 0,0);
-
-
-
-
         // Confirmation button closes window
         // and returns control to the caller
         Button confirm = new Button("OK");
         confirm.setOnAction(e -> window.close());
         GridPane.setConstraints(confirm, 0, x + 1);
-
-        // Layout
-//        VBox layout = new VBox(10);
-//        layout.getChildren().addAll(titleLabel, confirm);
-//        layout.setAlignment(Pos.CENTER);
 
         // Layout and style of alert window
         GridPane grid = new GridPane();
@@ -364,9 +351,11 @@ public class BookStore extends Application {
         grid.setStyle("-fx-background-color: #373737;");
         grid.getChildren().addAll(confirm);
 
+        // Adding chlidren labels for all items to grid
         for(int i = 0; i < currInvoice.size(); i++) {
             //grid.getChildren().addAll(labels.get(i));
         }
+        
         grid.setAlignment(Pos.CENTER);
         GridPane.setHalignment(confirm, HPos.CENTER);
         GridPane.setValignment(confirm, VPos.CENTER);
@@ -378,8 +367,11 @@ public class BookStore extends Application {
         window.showAndWait();
     }
 
+    
     // *-------------------------------------------------------* //
-
+    //  Will check that itemID is in the catalog if it is not    //
+    //  it will alert the user, handles empty fields and button  //
+    //  activation and look control                              //
     // *-------------------------------------------------------* //
     public static void processItems() {
 
@@ -409,11 +401,6 @@ public class BookStore extends Application {
 
             }
 
-            // Check if item count does not exceed totalItems
-            if (currentItem > totalItems ) {
-                // add alert
-            }
-
             // Storing book quantity info
             bookCatalog.get(index).setBookQuantity(Integer.parseInt(quantField.getText()));
             bookCatalog.get(index).setBulkPercent(findPercent(bookCatalog.get(index).getBookQuantity()));
@@ -424,12 +411,11 @@ public class BookStore extends Application {
             infoField.setText(discount);
 
 
-
             // Enable/Disable buttons for confirmation process
             confirmItem.setDisable(false);
             processItem.setDisable(true);
 
-            // *****************
+            
             // Disable item info text fields
             idField.setDisable(true);
             quantField.setDisable(true);
@@ -464,7 +450,7 @@ public class BookStore extends Application {
 
 
     // *-------------------------------------------------------* //
-
+    //  Return percent category for item quantity                //
     // *-------------------------------------------------------* //
     public static int findPercent(int numItems) {
 
@@ -489,9 +475,6 @@ public class BookStore extends Application {
     public static void confirmItem() {
 
         // Store item information for invoice creation
-        //invoiceItemsLocs.add(index);
-        //itemQuantity.add(Integer.parseInt(numItemsField.getText()));
-        //invoiceItemsLocs.add(index);
         currInvoice.add(bookCatalog.get(index));
 
         // Calculate subtotal of order
@@ -544,7 +527,7 @@ public class BookStore extends Application {
 
     
     // *-------------------------------------------------------* //
-
+    //  Reset all fields, buttons, and labels data and state     //
     // *-------------------------------------------------------* //
     public static void newOrder() {
 
@@ -580,7 +563,7 @@ public class BookStore extends Application {
 
 
     // *-------------------------------------------------------* //
-
+    //  Return total for item after the bulk discount            //
     // *-------------------------------------------------------* //
     public static double calcBulkDiscount() {
         double discount;
@@ -601,8 +584,6 @@ public class BookStore extends Application {
             percent = 20;
         }
 
-        //System.out.println("book cost: " + bookCatalog.get(index).getBookCost() + " nuItems: " + numItems + " percent:" + percent);
-
         // Subtotal
         cost = bookCatalog.get(index).getBookCost() * bookCatalog.get(index).getBookQuantity();
 
@@ -615,34 +596,6 @@ public class BookStore extends Application {
         return discount;
     }
 
-
-    // *-------------------------------------------------------* //
-
-    // *-------------------------------------------------------* //
-    public static String calcDiscount(double cost, int numItemsTotal) {
-
-        String text;
-
-        // Determine discount percent
-        if (numItemsTotal < 5 && numItemsTotal > 0) {
-            percent = 0;
-        } else if (numItemsTotal > 4 && numItemsTotal < 10) {
-            percent = 10;
-        } else if (numItemsTotal > 9 && numItemsTotal < 15) {
-            percent = 15;
-        } else {
-            percent = 20;
-        }
-
-
-        if (percent > 0) {
-            text = "$" + cost + " " + percent + "% $" + round((cost * percent) / 10, 2);
-        } else {
-            text = "$" + cost + " " + percent + "% $" + cost;
-        }
-
-        return text;
-    }
 
     // *-------------------------------------------------------* //
 
@@ -698,7 +651,8 @@ public class BookStore extends Application {
     }
 
     // *-------------------------------------------------------* //
-
+    //  Displays an alert pop-up, take the title of the window,  //
+    //  and the message to be displayed on the GUI               //
     // *-------------------------------------------------------* //
     public static void alertPopUp(String title, String message) {
 
@@ -744,9 +698,7 @@ public class BookStore extends Application {
     }
 
 
-    // --------------------------------------- //
-    // Will print the content of an array list //
-    // containing the book catalog data        //
+    // -- HELPER TERMINAL FUNCTIONS -- 
     public static void printInput(ArrayList<BookObject> bookCatalog){
 
         // Iterate through book catalog
