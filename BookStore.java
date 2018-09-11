@@ -1,5 +1,5 @@
 //
-// Create by Isaias Perez Vega
+// Created by Isaias Perez Vega
 //
 
 package BookStoreApp;
@@ -598,7 +598,7 @@ public class BookStore extends Application {
 
 
     // *-------------------------------------------------------* //
-
+    //  Round a double to specified decimal places               // 
     // *-------------------------------------------------------* //
     public static double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
