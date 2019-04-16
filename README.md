@@ -1,6 +1,8 @@
 # BookStore
 
-![](http://www.reynodigital.com/etc/1.PNG)
+<p align="center">
+  <img height = 430 src="http://www.easymachinelearning.net/GitHub/1.PNG">
+</p>
 
 ## Objective
 
@@ -20,4 +22,12 @@ The program should simulate an e-store which allows users to add items (books) t
 application when the user makes a selection. 
 3. An output file named “transactions.txt” must be created that uniquely logs each user transaction with the e-store. The unique transaction id will be generated as a permutation of the date/time string when the transaction occurred.
 
-![](http://www.reynodigital.com/etc/3.PNG)
+## Screenshots
+
+<p align="center">
+  <img height = 430 src="http://www.easymachinelearning.net/GitHub/3.PNG">
+</p>
+
+<p align="center">
+  <img height = 430 src="http://www.easymachinelearning.net/GitHub/4.PNG">
+</p>
